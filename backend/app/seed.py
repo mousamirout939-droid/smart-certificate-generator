@@ -34,6 +34,12 @@ COURSES = [
     ("CRS-006", "Project Management Fundamentals", "Management", 18, 29.99),
     ("CRS-007", "Cybersecurity Awareness", "Technology", 6, 0),
     ("CRS-008", "Advanced Excel", "Productivity", 10, 14.99),
+    ("CRS-009", "SQL Database Essentials", "Data", 14, 24.99),
+    ("CRS-010", "Digital Marketing Strategy", "Marketing", 16, 19.99),
+    ("CRS-011", "UI/UX Design Foundations", "Design", 12, 0),
+    ("CRS-012", "Business Analytics", "Data", 20, 34.99),
+    ("CRS-013", "Workplace Ethics and Compliance", "Professional Development", 5, 0),
+    ("CRS-014", "Presentation Skills", "Soft Skills", 7, 9.99),
 ]
 
 COURSE_VIDEOS = {
@@ -45,6 +51,12 @@ COURSE_VIDEOS = {
     "CRS-006": [{"id": "project-management", "title": "Project Management Fundamentals", "youtube_id": "ThDdHETxA-g", "duration": "9:58"}],
     "CRS-007": [{"id": "cybersecurity", "title": "Cybersecurity Essentials", "youtube_id": "inWWhr5tnEA", "duration": "14:36"}],
     "CRS-008": [{"id": "excel", "title": "Excel for Beginners", "youtube_id": "Vl0H-qTclOg", "duration": "1:09:12"}],
+    "CRS-009": [{"id": "sql-essentials", "title": "SQL Database Essentials", "youtube_id": "HXV3zeQKqGY", "duration": "4:20:00"}],
+    "CRS-010": [{"id": "digital-marketing", "title": "Digital Marketing Strategy", "youtube_id": "nU-IIXBWlS4", "duration": "2:10:00"}],
+    "CRS-011": [{"id": "ui-ux", "title": "UI/UX Design Foundations", "youtube_id": "c9Wg6Cb_YlU", "duration": "1:30:00"}],
+    "CRS-012": [{"id": "business-analytics", "title": "Business Analytics", "youtube_id": "p1fJrE5y6nA", "duration": "2:00:00"}],
+    "CRS-013": [{"id": "ethics-compliance", "title": "Workplace Ethics and Compliance", "youtube_id": "xFhY8Z9dD1U", "duration": "45:00"}],
+    "CRS-014": [{"id": "presentation-skills", "title": "Presentation Skills", "youtube_id": "MnIPpUiTcRc", "duration": "1:00:00"}],
 }
 
 QUIZ_TOPICS = {
@@ -56,6 +68,12 @@ QUIZ_TOPICS = {
     "CRS-006": ("Project Management Fundamentals", "planning and delivering project work", "a project schedule"),
     "CRS-007": ("Cybersecurity Awareness", "protecting systems and information", "multi-factor authentication"),
     "CRS-008": ("Advanced Excel", "analyzing and presenting spreadsheet data", "pivot tables"),
+    "CRS-009": ("SQL Database Essentials", "retrieving and organizing relational data", "JOIN queries"),
+    "CRS-010": ("Digital Marketing Strategy", "reaching and converting the right audience", "campaign analytics"),
+    "CRS-011": ("UI/UX Design Foundations", "creating useful and accessible interfaces", "user research"),
+    "CRS-012": ("Business Analytics", "turning business data into decisions", "data visualization"),
+    "CRS-013": ("Workplace Ethics and Compliance", "making responsible and compliant decisions", "confidentiality"),
+    "CRS-014": ("Presentation Skills", "communicating ideas clearly to an audience", "story structure"),
 }
 
 
@@ -136,12 +154,25 @@ def seed():
 
         if db.query(User).filter(User.email == "admin@example.com").first():
             seeded_prices = {code: price for code, _, _, _, price in COURSES}
+            existing_codes = {course.course_code for course in db.query(Course).all()}
             for course in db.query(Course).all():
                 if course.course_code in seeded_prices:
                     course.price = seeded_prices[course.course_code]
                     course.videos = COURSE_VIDEOS.get(course.course_code, [])
                     course.payment_mode = "online" if course.price > 0 else "not_required"
                     course.quiz_questions = quiz_questions_for(course.course_code)
+            for code, title, category, duration, price in COURSES:
+                if code not in existing_codes:
+                    db.add(Course(
+                        course_code=code,
+                        title=title,
+                        category=category,
+                        duration_hours=duration,
+                        price=price,
+                        payment_mode="online" if price > 0 else "not_required",
+                        videos=COURSE_VIDEOS.get(code, []),
+                        quiz_questions=quiz_questions_for(code),
+                    ))
             db.commit()
             logger.info("Seed data already present - skipping seed.")
             return
