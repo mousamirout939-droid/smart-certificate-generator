@@ -62,11 +62,11 @@ QUIZ_TOPICS = {
 def quiz_questions_for(course_code):
     title, focus, example = QUIZ_TOPICS[course_code]
     return [
-        {"id": "q1", "question": f"What is a primary focus of {title}?", "options": [focus, "Avoiding all practice", "Removing useful data", "Skipping the lessons"], "correct_option": focus},
-        {"id": "q2", "question": f"Which topic is most relevant to {title}?", "options": [example, "Unrelated paperwork", "Random guessing", "Ignoring results"], "correct_option": example},
-        {"id": "q3", "question": f"What is the best way to improve in {title}?", "options": ["Practice the course skills", "Never review mistakes", "Skip every exercise", "Avoid applying concepts"], "correct_option": "Practice the course skills"},
-        {"id": "q4", "question": f"What should learners do when applying {title}?", "options": ["Use the concepts in a realistic task", "Ignore the requirements", "Choose answers at random", "Avoid checking the outcome"], "correct_option": "Use the concepts in a realistic task"},
-        {"id": "q5", "question": "What score is needed to unlock the certificate?", "options": ["80%", "20%", "50%", "Any score"], "correct_option": "80%"},
+        {"id": "q1", "question": f"A learner is working through {title}. Which result best shows they understood the main objective?", "options": ["They can apply the skill in a realistic task", focus, "They can repeat the course title", "They skip the practice activity"], "correct_option": focus},
+        {"id": "q2", "question": f"Which activity would provide the strongest evidence of learning in {title}?", "options": ["Waiting for someone else to solve the problem", "Memorizing unrelated facts", f"Using {example} appropriately in a task", "Avoiding feedback on the result"], "correct_option": f"Using {example} appropriately in a task"},
+        {"id": "q3", "question": f"A first attempt in {title} produces an unexpected result. What is the best next step?", "options": ["Assume the result is correct", "Abandon the course", "Change several things without checking them", "Review the result, identify the cause, and improve the approach"], "correct_option": "Review the result, identify the cause, and improve the approach"},
+        {"id": "q4", "question": f"Which choice is least likely to support the goal of {title}?", "options": ["Connecting the lesson to a real work situation", "Ignoring the requirements and guessing", "Checking whether the outcome meets the goal", "Practicing the technique more than once"], "correct_option": "Ignoring the requirements and guessing"},
+        {"id": "q5", "question": "A learner answers four of five questions correctly. What does that mean for certificate eligibility?", "options": ["The learner scored 50%", "The learner must answer all five correctly", "The learner scored 80% and passes", "The learner is not allowed to retry"], "correct_option": "The learner scored 80% and passes"},
     ]
 
 def build_learning_plan():
