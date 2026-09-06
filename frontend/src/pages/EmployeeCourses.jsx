@@ -28,7 +28,7 @@ export default function EmployeeCourses() {
     try {
       const response = await coursesApi.enroll(course.id)
       if (response.data.checkout_required) {
-        toast.info('This course is paid. Payment checkout is not configured yet.')
+        toast.info(response.data.message)
       } else {
         toast.success(`You are enrolled in ${course.title}`)
         load()

@@ -17,6 +17,15 @@ from app.services.learning_calc import recalculate_employee_hours
 from app.api.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/courses", tags=["courses"])
+PAYMENT_MODES = {"not_required", "online", "offline"}
+
+
+def _payment_mode_for(price: float, payment_mode: str) -> str:
+    if payment_mode not in PAYMENT_MODES:
+        raise HTTPException(status_code=400, detail="Payment mode must be online or offline for paid courses")
+    if price > 0 and payment_mode == "not_required":
+        raise HTTPException(status_code=400, detail="Paid courses must have an online or offline payment mode")
+    return "not_required" if price == 0 else payment_mode
 
 
 def _employee_for_user(current_user: User, db: Session):
@@ -174,7 +183,7 @@ def enroll_in_course(course_id: int, db: Session = Depends(get_db), current_user
         return EnrollmentActionOut(
             enrolled=False,
             checkout_required=True,
-            message="This course requires payment. Connect a payment provider to continue.",
+            message=f"This course requires payment of ${course.price:.2f} by {course.payment_mode} checkout.",
         )
 
     enrollment = Enrollment(
@@ -195,7 +204,9 @@ def create_course(payload: CourseCreate, db: Session = Depends(get_db), admin: U
     if db.query(Course).filter(Course.course_code == payload.course_code).first():
         raise HTTPException(status_code=400, detail="Course code already exists")
 
-    course = Course(**payload.model_dump())
+    data = payload.model_dump()
+    data["payment_mode"] = _payment_mode_for(data["price"], data["payment_mode"])
+    course = Course(**data)
     db.add(course)
     db.commit()
     db.refresh(course)
@@ -209,6 +220,9 @@ def update_course(course_id: int, payload: CourseUpdate, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="Course not found")
 
     data = payload.model_dump(exclude_unset=True)
+    price = data.get("price", course.price)
+    payment_mode = data.get("payment_mode", course.payment_mode)
+    data["payment_mode"] = _payment_mode_for(price, payment_mode)
     for field, value in data.items():
         setattr(course, field, value)
 

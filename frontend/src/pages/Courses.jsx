@@ -112,6 +112,7 @@ function AddCourseModal({ open, onClose, onCreated }) {
   const toast = useToast()
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
+  const updatePrice = (e) => setForm((f) => ({ ...f, price: e.target.value, payment_mode: Number(e.target.value) > 0 ? (f.payment_mode === 'not_required' ? 'online' : f.payment_mode) : 'not_required' }))
 
   const submit = async (e) => {
     e.preventDefault()
@@ -135,8 +136,8 @@ function AddCourseModal({ open, onClose, onCreated }) {
         <div className="grid grid-cols-2 gap-x-4">
           <Field label="Course code"><Input required value={form.course_code} onChange={update('course_code')} placeholder="CRS-009" /></Field>
           <Field label="Duration (hours)"><Input type="number" min="0" required value={form.duration_hours} onChange={update('duration_hours')} /></Field>
-          <Field label="Price (USD, 0 = free)"><Input type="number" min="0" step="0.01" required value={form.price} onChange={update('price')} /></Field>
-          <Field label="Payment mode"><Select value={form.payment_mode} onChange={update('payment_mode')}><option value="not_required">Not required</option><option value="online">Online</option><option value="offline">Offline</option></Select></Field>
+          <Field label="Price (USD, 0 = free)"><Input type="number" min="0" step="0.01" required value={form.price} onChange={updatePrice} /></Field>
+          <Field label="Payment mode"><Select required={Number(form.price) > 0} value={form.payment_mode} onChange={update('payment_mode')}><option value="not_required">Not required</option><option value="online">Online</option><option value="offline">Offline</option></Select></Field>
         </div>
         <Field label="Title"><Input required value={form.title} onChange={update('title')} /></Field>
         <Field label="Category"><Input value={form.category} onChange={update('category')} placeholder="e.g. Technology" /></Field>
