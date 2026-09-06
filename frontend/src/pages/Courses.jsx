@@ -6,6 +6,13 @@ import { Button, Input, Select, Field, EmptyState, LoadingPage } from '../compon
 import { Modal, ConfirmDialog } from '../components/Modal'
 import { useToast } from '../context/ToastContext'
 
+const emptyQuizQuestions = () => Array.from({ length: 5 }, (_, index) => ({
+  id: `q${index + 1}`,
+  question: '',
+  options: ['', '', '', ''],
+  correct_option: '',
+}))
+
 export default function Courses() {
   const [courses, setCourses] = useState(null)
   const [search, setSearch] = useState('')
@@ -100,7 +107,7 @@ export default function Courses() {
 }
 
 function AddCourseModal({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0, payment_mode: 'not_required', quiz_questions: '' })
+  const [form, setForm] = useState({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0, payment_mode: 'not_required', quiz_questions: emptyQuizQuestions() })
   const [saving, setSaving] = useState(false)
   const toast = useToast()
 
@@ -110,11 +117,10 @@ function AddCourseModal({ open, onClose, onCreated }) {
     e.preventDefault()
     setSaving(true)
     try {
-      let quiz_questions = []
-      if (form.quiz_questions.trim()) quiz_questions = JSON.parse(form.quiz_questions)
+      const quiz_questions = form.quiz_questions.map((item) => ({ ...item, options: item.options.filter(Boolean) }))
       await coursesApi.create({ ...form, duration_hours: Number(form.duration_hours), price: Number(form.price), quiz_questions })
       toast.success('Course added')
-      setForm({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0, payment_mode: 'not_required', quiz_questions: '' })
+      setForm({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0, payment_mode: 'not_required', quiz_questions: emptyQuizQuestions() })
       onCreated()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to add course')
@@ -142,9 +148,25 @@ function AddCourseModal({ open, onClose, onCreated }) {
             className="w-full px-3 py-2 border border-ink-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500"
           />
         </Field>
-        <Field label="Quiz questions (JSON, minimum 5)">
-          <textarea value={form.quiz_questions} onChange={update('quiz_questions')} rows={5} placeholder={'[{"id":"q1","question":"...","options":["A","B"],"correct_option":"A"}]'} className="w-full px-3 py-2 border border-ink-100 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500" />
-        </Field>
+        <div className="border-t border-ink-100 pt-4 mt-2">
+          <h3 className="text-sm font-medium text-ink-800 mb-1">Course knowledge check</h3>
+          <p className="text-xs text-ink-400 mb-4">Add five questions related to this course. Learners must answer at least four correctly.</p>
+          <div className="space-y-5">
+            {form.quiz_questions.map((item, questionIndex) => (
+              <div key={item.id} className="rounded-lg border border-ink-100 p-4">
+                <p className="text-xs font-medium text-ink-400 mb-2">Question {questionIndex + 1}</p>
+                <Input required value={item.question} onChange={(e) => setForm((current) => ({ ...current, quiz_questions: current.quiz_questions.map((question, index) => index === questionIndex ? { ...question, question: e.target.value } : question) }))} placeholder="What should learners know?" />
+                <div className="grid sm:grid-cols-2 gap-2 mt-2">
+                  {item.options.map((option, optionIndex) => <Input key={optionIndex} required value={option} onChange={(e) => setForm((current) => ({ ...current, quiz_questions: current.quiz_questions.map((question, index) => index === questionIndex ? { ...question, options: question.options.map((value, position) => position === optionIndex ? e.target.value : value) } : question) }))} placeholder={`Option ${optionIndex + 1}`} />)}
+                </div>
+                <Select required className="mt-2" value={item.correct_option} onChange={(e) => setForm((current) => ({ ...current, quiz_questions: current.quiz_questions.map((question, index) => index === questionIndex ? { ...question, correct_option: e.target.value } : question) }))}>
+                  <option value="">Select the correct option</option>
+                  {item.options.filter(Boolean).map((option) => <option key={option} value={option}>{option}</option>)}
+                </Select>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="flex justify-end gap-3 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="gold" disabled={saving}>{saving ? 'Adding…' : 'Add Course'}</Button>

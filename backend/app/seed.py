@@ -47,13 +47,27 @@ COURSE_VIDEOS = {
     "CRS-008": [{"id": "excel", "title": "Excel for Beginners", "youtube_id": "Vl0H-qTclOg", "duration": "1:09:12"}],
 }
 
-QUIZ_QUESTIONS = [
-    {"id": "q1", "question": "What is the main goal of this course?", "options": ["Build practical skills", "Skip all practice", "Avoid assessment", "None of these"], "correct_option": "Build practical skills"},
-    {"id": "q2", "question": "Which approach best supports learning?", "options": ["Regular practice", "Never reviewing", "Skipping lessons", "Guessing every answer"], "correct_option": "Regular practice"},
-    {"id": "q3", "question": "When should you ask for clarification?", "options": ["When a concept is unclear", "Only after certification", "Never", "Only on weekends"], "correct_option": "When a concept is unclear"},
-    {"id": "q4", "question": "What demonstrates course completion?", "options": ["Watching every lesson and passing the quiz", "Opening the course once", "Reading the title", "Starting enrollment"], "correct_option": "Watching every lesson and passing the quiz"},
-    {"id": "q5", "question": "What score is needed to unlock the certificate?", "options": ["80%", "20%", "50%", "Any score"], "correct_option": "80%"},
-]
+QUIZ_TOPICS = {
+    "CRS-001": ("Python Fundamentals", "writing readable Python code", "functions and variables"),
+    "CRS-002": ("Data Analysis with Python", "cleaning and interpreting datasets", "pandas DataFrames"),
+    "CRS-003": ("Effective Communication", "clear and active communication", "active listening"),
+    "CRS-004": ("Leadership Essentials", "guiding a team toward shared goals", "constructive feedback"),
+    "CRS-005": ("Cloud Computing Basics", "using scalable cloud resources", "virtual machines"),
+    "CRS-006": ("Project Management Fundamentals", "planning and delivering project work", "a project schedule"),
+    "CRS-007": ("Cybersecurity Awareness", "protecting systems and information", "multi-factor authentication"),
+    "CRS-008": ("Advanced Excel", "analyzing and presenting spreadsheet data", "pivot tables"),
+}
+
+
+def quiz_questions_for(course_code):
+    title, focus, example = QUIZ_TOPICS[course_code]
+    return [
+        {"id": "q1", "question": f"What is a primary focus of {title}?", "options": [focus, "Avoiding all practice", "Removing useful data", "Skipping the lessons"], "correct_option": focus},
+        {"id": "q2", "question": f"Which topic is most relevant to {title}?", "options": [example, "Unrelated paperwork", "Random guessing", "Ignoring results"], "correct_option": example},
+        {"id": "q3", "question": f"What is the best way to improve in {title}?", "options": ["Practice the course skills", "Never review mistakes", "Skip every exercise", "Avoid applying concepts"], "correct_option": "Practice the course skills"},
+        {"id": "q4", "question": f"What should learners do when applying {title}?", "options": ["Use the concepts in a realistic task", "Ignore the requirements", "Choose answers at random", "Avoid checking the outcome"], "correct_option": "Use the concepts in a realistic task"},
+        {"id": "q5", "question": "What score is needed to unlock the certificate?", "options": ["80%", "20%", "50%", "Any score"], "correct_option": "80%"},
+    ]
 
 def build_learning_plan():
     """
@@ -127,7 +141,7 @@ def seed():
                     course.price = seeded_prices[course.course_code]
                     course.videos = COURSE_VIDEOS.get(course.course_code, [])
                     course.payment_mode = "online" if course.price > 0 else "not_required"
-                    course.quiz_questions = QUIZ_QUESTIONS
+                    course.quiz_questions = quiz_questions_for(course.course_code)
             db.commit()
             logger.info("Seed data already present - skipping seed.")
             return
@@ -146,7 +160,7 @@ def seed():
         # --- Courses ---
         course_map = {}
         for code, title, category, duration, price in COURSES:
-            course = Course(course_code=code, title=title, category=category, duration_hours=duration, price=price, payment_mode="online" if price > 0 else "not_required", videos=COURSE_VIDEOS.get(code, []), quiz_questions=QUIZ_QUESTIONS)
+            course = Course(course_code=code, title=title, category=category, duration_hours=duration, price=price, payment_mode="online" if price > 0 else "not_required", videos=COURSE_VIDEOS.get(code, []), quiz_questions=quiz_questions_for(code))
             db.add(course)
             db.commit()
             db.refresh(course)
