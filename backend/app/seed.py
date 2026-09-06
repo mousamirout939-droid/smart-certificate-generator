@@ -55,7 +55,7 @@ COURSE_VIDEOS = {
     "CRS-010": [{"id": "digital-marketing", "title": "Digital Marketing Strategy", "youtube_id": "nU-IIXBWlS4", "duration": "2:10:00"}],
     "CRS-011": [{"id": "ui-ux", "title": "UI/UX Design Foundations", "youtube_id": "c9Wg6Cb_YlU", "duration": "1:30:00"}],
     "CRS-012": [{"id": "business-analytics", "title": "Business Analytics", "youtube_id": "p1fJrE5y6nA", "duration": "2:00:00"}],
-    "CRS-013": [{"id": "ethics-compliance", "title": "Workplace Ethics and Compliance", "youtube_id": "xFhY8Z9dD1U", "duration": "45:00"}],
+    "CRS-013": [{"id": "ethics-compliance", "title": "Workplace Ethics and Compliance", "youtube_id": "", "duration": "45:00"}],
     "CRS-014": [{"id": "presentation-skills", "title": "Presentation Skills", "youtube_id": "MnIPpUiTcRc", "duration": "1:00:00"}],
 }
 
