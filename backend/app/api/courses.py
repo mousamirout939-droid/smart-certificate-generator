@@ -1,4 +1,5 @@
 from typing import Optional
+import random
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -8,7 +9,7 @@ from app.models.course import Course
 from app.models.user import User
 from app.models.employee import Employee
 from app.models.enrollment import Enrollment, EnrollmentStatus, PaymentStatus
-from app.schemas.course import CourseCreate, CourseUpdate, CourseOut
+from app.schemas.course import CourseCreate, CourseUpdate, CourseOut, QuizQuestionOut, QuizSubmission, QuizResult
 from app.schemas.enrollment import EnrollmentActionOut, EnrollmentOut
 from app.services.automation_service import run_automation, generate_course_certificate
 from app.models.learning_record import LearningRecord, LearningStatus
@@ -84,6 +85,48 @@ def mark_video_watched(course_id: int, video_id: str, db: Session = Depends(get_
     return enrollment
 
 
+@router.get("/{course_id}/quiz", response_model=list[QuizQuestionOut])
+def get_course_quiz(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _, course, enrollment = _enrolled_course(course_id, current_user, db)
+    questions = [question for question in (course.quiz_questions or []) if question.get("id") and question.get("question") and question.get("options")]
+    if len(questions) < 5:
+        raise HTTPException(status_code=400, detail="This course does not have five quiz questions yet")
+    selected_ids = [str(question_id) for question_id in (enrollment.selected_quiz_question_ids or [])]
+    if len(selected_ids) != 5 or set(selected_ids) != {str(question["id"]) for question in questions if str(question["id"]) in selected_ids}:
+        selected_ids = [str(question["id"]) for question in random.sample(questions, 5)]
+        enrollment.selected_quiz_question_ids = selected_ids
+        db.add(enrollment)
+        db.commit()
+    selected = {str(question["id"]): question for question in questions if str(question["id"]) in selected_ids}
+    if len(selected) != 5:
+        enrollment.selected_quiz_question_ids = []
+        db.add(enrollment)
+        db.commit()
+        return get_course_quiz(course_id, db, current_user)
+    return [QuizQuestionOut(id=question_id, question=selected[question_id]["question"], options=selected[question_id]["options"]) for question_id in selected_ids]
+
+
+@router.post("/{course_id}/quiz", response_model=QuizResult)
+def submit_course_quiz(course_id: int, payload: QuizSubmission, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _, course, enrollment = _enrolled_course(course_id, current_user, db)
+    required = {str(video.get("id")) for video in (course.videos or [])}
+    if required - set(enrollment.watched_video_ids or []):
+        raise HTTPException(status_code=400, detail="Watch every lesson before taking the quiz")
+    questions = {str(question.get("id")): question for question in (course.quiz_questions or []) if question.get("id")}
+    selected_ids = [str(question_id) for question_id in (enrollment.selected_quiz_question_ids or [])]
+    if len(selected_ids) != 5 or any(question_id not in questions for question_id in selected_ids):
+        raise HTTPException(status_code=400, detail="Start the quiz before submitting answers")
+    if set(payload.answers) != set(selected_ids):
+        raise HTTPException(status_code=400, detail="Answer all five quiz questions")
+    correct = sum(payload.answers[question_id] == str(questions[question_id].get("correct_option")) for question_id in selected_ids)
+    score = correct / 5 * 100
+    enrollment.quiz_score = score
+    enrollment.quiz_passed = score >= 80
+    db.add(enrollment)
+    db.commit()
+    return QuizResult(score=score, passed=enrollment.quiz_passed, correct_answers=correct, total_questions=5)
+
+
 @router.post("/{course_id}/complete", response_model=EnrollmentOut)
 def complete_course(course_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     employee, course, enrollment = _enrolled_course(course_id, current_user, db)
@@ -93,6 +136,8 @@ def complete_course(course_id: int, db: Session = Depends(get_db), current_user:
     watched = set(enrollment.watched_video_ids or [])
     if required - watched:
         raise HTTPException(status_code=400, detail="Watch every lesson before completing this course")
+    if course.quiz_questions and not enrollment.quiz_passed:
+        raise HTTPException(status_code=400, detail="Pass the five-question quiz with at least 80% before completing this course")
     if enrollment.status == EnrollmentStatus.COMPLETED:
         return enrollment
 

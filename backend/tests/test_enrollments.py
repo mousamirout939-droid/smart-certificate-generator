@@ -79,3 +79,35 @@ def test_all_lessons_are_required_before_named_course_certificate(client, db_ses
     certificates = client.get("/api/certificates", headers=headers)
     assert certificates.status_code == 200
     assert certificates.json()[0]["achievement_type"] == "COURSE_COMPLETION"
+
+
+def test_course_quiz_requires_80_percent_before_certificate(client, db_session):
+    employee = create_employee(db_session, name="Quiz Learner", email="quiz.learner@example.com")
+    course = _course(db_session, "QUIZ-001")
+    course.videos = [{"id": "lesson-one", "title": "Lesson One", "youtube_id": "abc123"}]
+    course.quiz_questions = [
+        {"id": f"q{index}", "question": f"Question {index}", "options": ["Correct", "Wrong"], "correct_option": "Correct"}
+        for index in range(1, 6)
+    ]
+    db_session.commit()
+    headers = login(client, employee.email)
+    assert client.post(f"/api/courses/{course.id}/enroll", headers=headers).status_code == 200
+    assert client.post(f"/api/courses/{course.id}/videos/lesson-one/watched", headers=headers).status_code == 200
+
+    quiz = client.get(f"/api/courses/{course.id}/quiz", headers=headers)
+    assert quiz.status_code == 200
+    question_ids = [question["id"] for question in quiz.json()]
+
+    failed = client.post(f"/api/courses/{course.id}/quiz", headers=headers, json={"answers": {
+        question_id: "Correct" if index < 3 else "Wrong"
+        for index, question_id in enumerate(question_ids)
+    }})
+    assert failed.status_code == 200
+    assert failed.json()["passed"] is False
+    assert client.post(f"/api/courses/{course.id}/complete", headers=headers).status_code == 400
+
+    passed = client.post(f"/api/courses/{course.id}/quiz", headers=headers, json={"answers": {
+        question_id: "Correct" for question_id in question_ids
+    }})
+    assert passed.json()["passed"] is True
+    assert client.post(f"/api/courses/{course.id}/complete", headers=headers).status_code == 200

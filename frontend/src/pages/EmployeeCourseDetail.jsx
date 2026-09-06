@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, PlayCircle, ShieldCheck } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { coursesApi, certificatesApi } from '../services/resources'
+import { coursesApi } from '../services/resources'
 import { Badge, Card, ProgressBar } from '../components/ui'
 import { Button, LoadingPage } from '../components/form'
 import { useToast } from '../context/ToastContext'
@@ -12,6 +12,9 @@ export default function EmployeeCourseDetail() {
   const toast = useToast()
   const [course, setCourse] = useState(null)
   const [enrollment, setEnrollment] = useState(null)
+  const [quiz, setQuiz] = useState(null)
+  const [answers, setAnswers] = useState({})
+  const [quizResult, setQuizResult] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
@@ -32,6 +35,27 @@ export default function EmployeeCourseDetail() {
       toast.success('Course complete. Your certificate is ready on My Certificates.')
       navigate('/employee/certificates')
     } catch (err) { toast.error(err.response?.data?.detail || 'Watch every lesson before completing the course') }
+    finally { setSaving(false) }
+  }
+
+  const startQuiz = async () => {
+    try {
+      const response = await coursesApi.getQuiz(id)
+      setQuiz(response.data)
+      setAnswers({})
+      setQuizResult(null)
+    } catch (err) { toast.error(err.response?.data?.detail || 'Could not load the course quiz') }
+  }
+
+  const submitQuiz = async () => {
+    setSaving(true)
+    try {
+      const response = await coursesApi.submitQuiz(id, answers)
+      setQuizResult(response.data)
+      await load()
+      if (response.data.passed) toast.success('Quiz passed. You can now complete the course and download your certificate.')
+      else toast.error('You need at least 80% to pass. Review the lessons and try again.')
+    } catch (err) { toast.error(err.response?.data?.detail || 'Could not submit the quiz') }
     finally { setSaving(false) }
   }
 
@@ -59,7 +83,20 @@ export default function EmployeeCourseDetail() {
           </Card>
         ))}
       </div>
-      <Card className="p-5 mt-6 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-medium text-ink-800">Ready to finish?</h2><p className="text-sm text-ink-400 mt-1">Watch every lesson, then receive a certificate in your account name.</p></div><Button variant="gold" disabled={saving || completion < 100} onClick={complete}>{saving ? 'Generating certificate...' : 'Complete course'}</Button></Card>
+      {completion === 100 && !enrollment.quiz_passed && !quiz && (
+        <Card className="p-5 mt-6 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-medium text-ink-800">Complete the knowledge check</h2><p className="text-sm text-ink-400 mt-1">Answer five questions and score at least 80% to unlock your certificate.</p></div><Button variant="outline" onClick={startQuiz}>Take 5-question quiz</Button></Card>
+      )}
+      {quiz && !enrollment.quiz_passed && (
+        <Card className="p-5 mt-6">
+          <div className="mb-5"><h2 className="font-medium text-ink-800">Course quiz</h2><p className="text-sm text-ink-400 mt-1">Choose one answer for each question. You need 4 out of 5 correct.</p></div>
+          <div className="space-y-5">
+            {quiz.map((item, index) => <fieldset key={item.id}><legend className="text-sm font-medium text-ink-800">{index + 1}. {item.question}</legend><div className="grid sm:grid-cols-2 gap-2 mt-2">{item.options.map((option) => <label key={option} className="flex items-center gap-2 border border-ink-100 rounded-lg px-3 py-2 text-sm text-ink-700 cursor-pointer hover:bg-ink-50"><input type="radio" name={item.id} value={option} checked={answers[item.id] === option} onChange={() => setAnswers((current) => ({ ...current, [item.id]: option }))} />{option}</label>)}</div></fieldset>)}
+          </div>
+          {quizResult && <p className={`text-sm mt-4 ${quizResult.passed ? 'text-emerald-700' : 'text-rose-700'}`}>Score: {quizResult.score}% ({quizResult.correct_answers}/5)</p>}
+          <Button className="mt-5" variant="gold" disabled={saving || Object.keys(answers).length !== 5} onClick={submitQuiz}>{saving ? 'Checking answers...' : 'Submit quiz'}</Button>
+        </Card>
+      )}
+      <Card className="p-5 mt-6 flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-medium text-ink-800">Ready to finish?</h2><p className="text-sm text-ink-400 mt-1">{enrollment.quiz_passed ? 'Your quiz is passed. Complete the course to generate your certificate.' : 'Watch every lesson and pass the quiz to receive your certificate.'}</p></div><Button variant="gold" disabled={saving || completion < 100 || (course.quiz_required && !enrollment.quiz_passed)} onClick={complete}>{saving ? 'Generating certificate...' : 'Complete course'}</Button></Card>
     </div>
   )
 }

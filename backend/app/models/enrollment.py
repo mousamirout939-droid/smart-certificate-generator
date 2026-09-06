@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Enum, UniqueConstraint, JSON
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Enum, UniqueConstraint, JSON, Boolean
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -31,6 +31,9 @@ class Enrollment(Base):
     amount = Column(Float, nullable=False, default=0)
     provider_reference = Column(String(255), nullable=True)
     watched_video_ids = Column(JSON, nullable=False, default=list)
+    selected_quiz_question_ids = Column(JSON, nullable=False, default=list)
+    quiz_score = Column(Float, nullable=True)
+    quiz_passed = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

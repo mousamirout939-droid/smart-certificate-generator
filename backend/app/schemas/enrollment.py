@@ -14,6 +14,8 @@ class EnrollmentOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     watched_video_ids: list[str] = []
+    quiz_score: Optional[float]
+    quiz_passed: bool
 
     class Config:
         from_attributes = True

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Search, BookOpen, Trash2 } from 'lucide-react'
 import { coursesApi } from '../services/resources'
 import { Card, Badge } from '../components/ui'
-import { Button, Input, Field, EmptyState, LoadingPage } from '../components/form'
+import { Button, Input, Select, Field, EmptyState, LoadingPage } from '../components/form'
 import { Modal, ConfirmDialog } from '../components/Modal'
 import { useToast } from '../context/ToastContext'
 
@@ -100,7 +100,7 @@ export default function Courses() {
 }
 
 function AddCourseModal({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0 })
+  const [form, setForm] = useState({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0, payment_mode: 'not_required', quiz_questions: '' })
   const [saving, setSaving] = useState(false)
   const toast = useToast()
 
@@ -110,9 +110,11 @@ function AddCourseModal({ open, onClose, onCreated }) {
     e.preventDefault()
     setSaving(true)
     try {
-      await coursesApi.create({ ...form, duration_hours: Number(form.duration_hours), price: Number(form.price) })
+      let quiz_questions = []
+      if (form.quiz_questions.trim()) quiz_questions = JSON.parse(form.quiz_questions)
+      await coursesApi.create({ ...form, duration_hours: Number(form.duration_hours), price: Number(form.price), quiz_questions })
       toast.success('Course added')
-      setForm({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0 })
+      setForm({ course_code: '', title: '', category: '', description: '', duration_hours: 10, price: 0, payment_mode: 'not_required', quiz_questions: '' })
       onCreated()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to add course')
@@ -128,6 +130,7 @@ function AddCourseModal({ open, onClose, onCreated }) {
           <Field label="Course code"><Input required value={form.course_code} onChange={update('course_code')} placeholder="CRS-009" /></Field>
           <Field label="Duration (hours)"><Input type="number" min="0" required value={form.duration_hours} onChange={update('duration_hours')} /></Field>
           <Field label="Price (USD, 0 = free)"><Input type="number" min="0" step="0.01" required value={form.price} onChange={update('price')} /></Field>
+          <Field label="Payment mode"><Select value={form.payment_mode} onChange={update('payment_mode')}><option value="not_required">Not required</option><option value="online">Online</option><option value="offline">Offline</option></Select></Field>
         </div>
         <Field label="Title"><Input required value={form.title} onChange={update('title')} /></Field>
         <Field label="Category"><Input value={form.category} onChange={update('category')} placeholder="e.g. Technology" /></Field>
@@ -138,6 +141,9 @@ function AddCourseModal({ open, onClose, onCreated }) {
             rows={3}
             className="w-full px-3 py-2 border border-ink-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500"
           />
+        </Field>
+        <Field label="Quiz questions (JSON, minimum 5)">
+          <textarea value={form.quiz_questions} onChange={update('quiz_questions')} rows={5} placeholder={'[{"id":"q1","question":"...","options":["A","B"],"correct_option":"A"}]'} className="w-full px-3 py-2 border border-ink-100 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500" />
         </Field>
         <div className="flex justify-end gap-3 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

@@ -63,6 +63,7 @@ export default function EmployeeCourses() {
                 {course.category && <Badge>{course.category}</Badge>}
                 <Badge tone="gold">{course.duration_hours}h</Badge>
                 <Badge tone={course.price > 0 ? 'default' : 'success'}>{course.price > 0 ? `$${course.price.toFixed(2)}` : 'Free'}</Badge>
+                {course.price > 0 && <Badge>{course.payment_mode}</Badge>}
               </div>
               {enrollment ? (
                 <div className="mt-4">

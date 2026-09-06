@@ -38,6 +38,10 @@ def init_db():
             additions.append("ALTER TABLE courses ADD COLUMN price FLOAT NOT NULL DEFAULT 0")
         if "videos" not in columns:
             additions.append("ALTER TABLE courses ADD COLUMN videos JSON NOT NULL DEFAULT '[]'")
+        if "payment_mode" not in columns:
+            additions.append("ALTER TABLE courses ADD COLUMN payment_mode VARCHAR(30) NOT NULL DEFAULT 'not_required'")
+        if "quiz_questions" not in columns:
+            additions.append("ALTER TABLE courses ADD COLUMN quiz_questions JSON NOT NULL DEFAULT '[]'")
         if additions:
             with engine.begin() as connection:
                 for statement in additions:
@@ -50,3 +54,14 @@ def init_db():
         if "watched_video_ids" not in enrollment_columns:
             with engine.begin() as connection:
                 connection.execute(text("ALTER TABLE enrollments ADD COLUMN watched_video_ids JSON NOT NULL DEFAULT '[]'"))
+        enrollment_additions = []
+        if "selected_quiz_question_ids" not in enrollment_columns:
+            enrollment_additions.append("ALTER TABLE enrollments ADD COLUMN selected_quiz_question_ids JSON NOT NULL DEFAULT '[]'")
+        if "quiz_score" not in enrollment_columns:
+            enrollment_additions.append("ALTER TABLE enrollments ADD COLUMN quiz_score FLOAT")
+        if "quiz_passed" not in enrollment_columns:
+            enrollment_additions.append("ALTER TABLE enrollments ADD COLUMN quiz_passed BOOLEAN NOT NULL DEFAULT 0")
+        if enrollment_additions:
+            with engine.begin() as connection:
+                for statement in enrollment_additions:
+                    connection.execute(text(statement))
